@@ -47,7 +47,8 @@ test('SGF export then import gives the same game (handicap, captures, pass, resi
   assertSameGame(game, copy);
   assert.equal(copy.startColor, WHITE);
   assert.equal(parseSGF(sgf).result, 'W+R');
-  copy.result = game.result;
+  assert.equal(copy.phase, 'over', 'an imported resigned game opens finished');
+  assert.deepEqual(copy.result, game.result);
   assert.equal(toSGF(copy), sgf, 'a second export is identical');
 });
 
@@ -62,6 +63,17 @@ test('SGF round trip of a scored 13x13 game keeps the result', () => {
   const copy = gameFromSGF(sgf);
   assert.deepEqual(copy.moves, game.moves);
   assert.equal(copy.phase, 'scoring', 'two final passes put the imported game in the dead-stone phase');
+});
+
+test('SGF import applies a black resignation and leaves other results live', () => {
+  const resigned = gameFromSGF('(;GM[1]SZ[9]RE[W+R];B[ee];W[cc])');
+  assert.equal(resigned.phase, 'over');
+  assert.deepEqual(resigned.result, { winner: 'white', reason: 'resign', margin: 0 });
+  const blackWins = gameFromSGF('(;GM[1]SZ[9]RE[B+Resign];B[ee])');
+  assert.equal(blackWins.result.winner, 'black');
+  const scored = gameFromSGF('(;GM[1]SZ[9]RE[B+3.5];B[ee])');
+  assert.notEqual(scored.phase, 'over');
+  assert.equal(scored.result, null);
 });
 
 test('SGF import follows the main line and reads setup stones', () => {

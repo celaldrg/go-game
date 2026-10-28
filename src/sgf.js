@@ -3,7 +3,7 @@
  * Supported properties: SZ, KM, HA, AB, AW, PB, PW, RE, B, W.
  */
 import { BLACK, WHITE } from './board.js';
-import { createGame, passMove, playMove, resultString } from './game.js';
+import { createGame, passMove, playMove, resign, resultString } from './game.js';
 
 const A = 'a'.charCodeAt(0);
 
@@ -151,8 +151,15 @@ export function parseSGF(text) {
   };
 }
 
+/** Ends the game by resignation when the SGF result says "B+R" or "W+R". */
+function applyResignation(game, result) {
+  const match = /^([BW])\+R/i.exec(result.trim());
+  if (match) resign(game, match[1].toUpperCase() === 'B' ? WHITE : BLACK);
+}
+
 /**
  * Builds a playable game from an SGF string; throws on illegal moves.
+ * A resignation result (RE[B+R] / RE[W+R]) is applied, so the game opens finished.
  * @param {string} text
  * @param {{seed?: number}} [opts]
  * @returns {object} game
@@ -174,5 +181,6 @@ export function gameFromSGF(text, opts = {}) {
     const ok = m.point < 0 ? passMove(game) : playMove(game, m.point % data.size, Math.floor(m.point / data.size)).ok;
     if (!ok) throw new Error(`SGF: illegal move ${k + 1}`);
   });
+  applyResignation(game, data.result);
   return game;
 }
