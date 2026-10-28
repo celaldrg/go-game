@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Go</title>
+    <meta name="description" content="Play Go in your browser on 9x9, 13x13 and 19x19 boards, against a friend or a Monte Carlo computer player. Free and open source." />
+    <meta name="theme-color" content="#0f172a" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Go" />
+    <meta property="og:description" content="Play Go in your browser on 9x9, 13x13 and 19x19 boards, against a friend or a Monte Carlo computer player." />
+    <meta property="og:url" content="https://celaldrg.github.io/go-game/" />
+    <meta property="og:image" content="https://celaldrg.github.io/go-game/docs/screenshot.png" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d4a24f'/%3E%3Cpath d='M16 8v48M32 8v48M48 8v48M8 16h48M8 32h48M8 48h48' stroke='%233b2a14' stroke-width='2.5'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%23111827'/%3E%3Ccircle cx='48' cy='16' r='9' fill='%23f8fafc'/%3E%3Ccircle cx='32' cy='32' r='4' fill='none' stroke='%23a3e635' stroke-width='2.5'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="src/main.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <h1 data-i18n="title">Go</h1>
+        <span class="tagline" data-i18n="tagline">The ancient board game of territory</span>
+      </div>
+      <div class="top-actions">
+        <button type="button" id="btn-restart" class="btn" data-i18n="restart">Restart</button>
+        <button type="button" id="btn-lang" class="btn btn-lang" data-i18n="langToggle" data-i18n-label="langToggleLabel" aria-label="TR: switch to Turkish">TR</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="board-wrap">
+        <svg id="board" class="board" role="img" tabindex="0" aria-label="Go board"></svg>
+      </section>
+
+      <aside class="panel">
+        <div class="players">
+          <div class="player" id="player-black">
+            <span class="dot dot-black" aria-hidden="true"></span>
+            <div>
+              <div class="pname"><span data-i18n="black">Black</span> <span class="who" id="who-black"></span></div>
+              <div class="pstat"><span data-i18n="captures">Captures</span>: <b id="cap-black">0</b></div>
+            </div>
+          </div>
+          <div class="player" id="player-white">
+            <span class="dot dot-white" aria-hidden="true"></span>
+            <div>
+              <div class="pname"><span data-i18n="white">White</span> <span class="who" id="who-white"></span></div>
+              <div class="pstat"><span data-i18n="captures">Captures</span>: <b id="cap-white">0</b> · <span data-i18n="komi">Komi</span> <b id="komi">6.5</b></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status" aria-live="polite">
+          <span class="spinner" id="spinner" hidden></span>
+          <span id="status-text"></span>
+        </div>
+        <div class="message" id="message" aria-live="polite"></div>
+
+        <div class="scoring" id="scoring" hidden>
+          <p id="scoring-help" data-i18n="scoringHelp">Both players passed.</p>
+          <div class="row">
+            <button type="button" class="btn btn-accent" id="btn-finish" data-i18n="finishScoring">Confirm score</button>
+            <button type="button" class="btn" id="btn-resume" data-i18n="resumePlay">Resume play</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn" id="btn-pass" data-i18n="pass">Pass</button>
+          <button type="button" class="btn" id="btn-undo" data-i18n="undo">Undo</button>
+          <button type="button" class="btn" id="btn-resign" data-i18n="resign">Resign</button>
+          <button type="button" class="btn btn-accent" id="btn-new" data-i18n="newGame">New game</button>
+        </div>
+
+        <details class="options" id="options">
+          <summary data-i18n="options">Options</summary>
+          <label class="check"><input type="checkbox" id="opt-numbers" /> <span data-i18n="moveNumbers">Show move numbers</span></label>
+          <label class="check"><input type="checkbox" id="opt-tap" /> <span data-i18n="tapTwice">Tap twice to place (touch)</span></label>
+          <div class="row">
+            <button type="button" class="btn" id="btn-sgf-save" data-i18n="sgfDownload">Download SGF</button>
+            <label class="btn file-btn"><span data-i18n="sgfUpload">Load SGF</span><input type="file" id="sgf-file" accept=".sgf,application/x-go-sgf,text/plain" /></label>
+          </div>
+          <p class="hint" data-i18n="keysHint">Keys: arrows move, Enter places, P passes, U undoes</p>
+        </details>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      MIT · <a href="https://github.com/celaldrg/go-game" data-i18n="footerSource">Source on GitHub</a>
+    </footer>
+
+    <dialog id="setup" class="dialog">
+      <form method="dialog" id="setup-form">
+        <h2 data-i18n="setupTitle">New game</h2>
+        <fieldset>
+          <legend data-i18n="boardSize">Board size</legend>
+          <div class="seg" id="seg-size">
+            <label><input type="radio" name="size" value="9" /><span>9×9</span></label>
+            <label><input type="radio" name="size" value="13" /><span>13×13</span></label>
+            <label><input type="radio" name="size" value="19" /><span>19×19</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend data-i18n="mode">Mode</legend>
+          <div class="seg">
+            <label><input type="radio" name="mode" value="computer" /><span data-i18n="modeComputer">vs computer</span></label>
+            <label><input type="radio" name="mode" value="two" /><span data-i18n="modeTwo">Two players</span></label>
+          </div>
+        </fieldset>
+        <div class="grid2">
+          <label class="field" id="field-level"><span data-i18n="level">Level</span>
+            <select name="level" id="sel-level">
+              <option value="easy" data-i18n="levelEasy">Easy</option>
+              <option value="medium" data-i18n="levelMedium">Medium</option>
+              <option value="hard" data-i18n="levelHard">Hard</option>
+            </select>
+          </label>
+          <label class="field" id="field-color"><span data-i18n="yourColor">Your colour</span>
+            <select name="color" id="sel-color">
+              <option value="1" data-i18n="black">Black</option>
+              <option value="2" data-i18n="white">White</option>
+            </select>
+          </label>
+          <label class="field"><span data-i18n="handicap">Handicap</span>
+            <select name="handicap" id="sel-handicap"></select>
+          </label>
+          <label class="field"><span data-i18n="komi">Komi</span>
+            <select name="komi" id="sel-komi"></select>
+          </label>
+        </div>
+        <div class="row end">
+          <button type="button" class="btn" id="btn-setup-cancel" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-accent" value="start" data-i18n="start">Start</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="result" class="dialog">
+      <h2 data-i18n="gameOver">Game over</h2>
+      <p class="result-line" id="result-line"></p>
+      <table class="score-table" id="score-table">
+        <thead>
+          <tr><th></th><th data-i18n="black">Black</th><th data-i18n="white">White</th></tr>
+        </thead>
+        <tbody>
+          <tr><th data-i18n="stones">Stones</th><td id="r-bs"></td><td id="r-ws"></td></tr>
+          <tr><th data-i18n="territory">Territory</th><td id="r-bt"></td><td id="r-wt"></td></tr>
+          <tr><th data-i18n="komi">Komi</th><td>–</td><td id="r-wk"></td></tr>
+          <tr class="total"><th data-i18n="total">Total</th><td id="r-btot"></td><td id="r-wtot"></td></tr>
+        </tbody>
+      </table>
+      <div class="row end">
+        <button type="button" class="btn" id="btn-result-close" data-i18n="close">Close</button>
+        <button type="button" class="btn btn-accent" id="btn-result-new" data-i18n="newGame">New game</button>
+      </div>
+    </dialog>
+  </body>
+</html>

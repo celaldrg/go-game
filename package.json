@@ -1,0 +1,11 @@
+{
+  "name": "go-game",
+  "version": "1.0.0",
+  "description": "The board game Go in the browser: 9x9, 13x13 and 19x19, two players or against a Monte Carlo tree search computer player.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}
